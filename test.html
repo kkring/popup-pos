@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>POS 시스템</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      margin: 0;
+      height: 100vh;
+    }
+    .menu {
+      flex: 2;
+      background: #f9f9f9;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 1rem;
+      overflow-y: auto;
+    }
+    .menu-item {
+      background: white;
+      padding: 1rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.1s ease;
+    }
+    .menu-item:hover {
+      transform: translateY(-3px);
+    }
+    .menu-item.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    .receipt {
+      flex: 1;
+      border-left: 1px solid #ddd;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .receipt-list {
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    .receipt-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    .summary {
+      margin-top: 1rem;
+    }
+    button {
+      padding: 1rem;
+      width: 100%;
+      background: #ff7f50;
+      color: white;
+      border: none;
+      font-size: 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .utility {
+      margin-top: 1rem;
+    }
+    .btn-wrap button {
+      font-size: 1.2rem;
+      padding: 0.5rem 1rem;
+      margin-left: 0.5rem;
+    }
+  </style>
+  <script defer>
+    const products = [
+      { name: "티머그", price: 25000, 구성품: "엑럭 봉투", stock: 11 },
+      { name: "틴케이스 - 오리엔탈 (티백)", price: 26000, 구성품: "엑럭 봉투", stock: 70 },
+      { name: "틴케이스 - 스윗 (티백)", price: 26000, 구성품: "엑럭 봉투", stock: 69 },
+      { name: "틴케이스 - 쿨 (티백)", price: 26000, 구성품: "엑럭 봉투", stock: 77 },
+      { name: "티머그 세트 - 오리엔탈 (티백)", price: 50000, 구성품: "쇼핑백", stock: 0 },
+      { name: "티머그 세트 - 스윗 (티백)", price: 50000, 구성품: "쇼핑백", stock: 0 },
+      { name: "티머그 세트 - 쿨 (티백)", price: 50000, 구성품: "쇼핑백", stock: 0 },
+      { name: "버라이어티팩", price: 16000, 구성품: "엑럭 봉투", stock: 67 },
+      { name: "3종 선물세트 (티백)", price: 79000, 구성품: "쇼핑백", stock: 7 },
+      { name: "쇼핑백", price: 2000, 구성품: "-", stock: 14 },
+      { name: "개별 파우치 - 오리엔탈", price: 0, 구성품: "-", stock: 200 },
+      { name: "개별 파우치 - 스윗", price: 0, 구성품: "-", stock: 200 },
+      { name: "개별 파우치 - 쿨", price: 0, 구성품: "-", stock: 200 }
+    ];
+
+    let cart = {};
+    let log = JSON.parse(localStorage.getItem('sales_log') || '[]');
+
+    function renderMenu() {
+      const menu = document.getElementById('menu');
+      menu.innerHTML = '';
+      products.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'menu-item';
+        if (p.stock <= 0) item.classList.add('disabled');
+        item.innerHTML = `${p.name}<br>₩${p.price.toLocaleString()}<br><small>재고: ${p.stock}</small>`;
+        item.onclick = () => addToCart(p.name, p.price);
+        menu.appendChild(item);
+      });
+    }
+
+    function findProduct(name) {
+      return products.find(p => p.name === name);
+    }
+
+    function addToCart(name, price) {
+      const product = findProduct(name);
+      if (product.stock <= 0) return;
+      if (!cart[name]) cart[name] = { qty: 0, price };
+      if (cart[name].qty < product.stock) {
+        cart[name].qty++;
+        renderReceipt();
+      } else {
+        alert("재고를 초과할 수 없습니다.");
+      }
+    }
+
+    function removeFromCart(name) {
+      if (!cart[name]) return;
+      cart[name].qty--;
+      if (cart[name].qty <= 0) {
+        delete cart[name];
+      }
+      renderReceipt();
+    }
+
+    function renderReceipt() {
+      const receipt = document.getElementById('receipt');
+      receipt.innerHTML = '';
+      let total = 0;
+
+      Object.entries(cart).forEach(([name, { qty, price }]) => {
+        const item = document.createElement('div');
+        item.className = 'receipt-item';
+
+        const infoWrap = document.createElement('div');
+        const nameEl = document.createElement('span');
+        nameEl.textContent = name;
+        const qtyEl = document.createElement('span');
+        qtyEl.textContent = `x ${qty}`;
+        const priceEl = document.createElement('span');
+        priceEl.textContent = `₩${(qty * price).toLocaleString()}`;
+        infoWrap.appendChild(nameEl);
+        infoWrap.appendChild(qtyEl);
+        infoWrap.appendChild(priceEl);
+
+        const btnWrap = document.createElement('div');
+        btnWrap.className = 'btn-wrap';
+        const plusBtn = document.createElement('button');
+        plusBtn.textContent = '＋';
+        plusBtn.onclick = () => addToCart(name, price);
+        const minusBtn = document.createElement('button');
+        minusBtn.textContent = '−';
+        minusBtn.onclick = () => removeFromCart(name);
+        btnWrap.appendChild(plusBtn);
+        btnWrap.appendChild(minusBtn);
+
+        item.appendChild(infoWrap);
+        item.appendChild(btnWrap);
+
+        receipt.appendChild(item);
+        total += qty * price;
+      });
+
+      document.getElementById('total').textContent = total.toLocaleString();
+    }
+
+    function formatDate(d) {
+      return d.getFullYear() + '-' +
+             String(d.getMonth() + 1).padStart(2, '0') + '-' +
+             String(d.getDate()).padStart(2, '0') + ' ' +
+             String(d.getHours()).padStart(2, '0') + ':' +
+             String(d.getMinutes()).padStart(2, '0');
+    }
+
+    function confirmPurchase() {
+      const timestamp = formatDate(new Date());
+      log.push({ time: timestamp, items: { ...cart } });
+      localStorage.setItem('sales_log', JSON.stringify(log));
+      
+      // 재고 차감
+      Object.entries(cart).forEach(([name, { qty }]) => {
+        const p = findProduct(name);
+        p.stock -= qty;
+      });
+
+      alert('결제가 완료되었습니다!');
+      cart = {};
+      renderMenu();
+      renderReceipt();
+    }
+
+    function openSalesLog() {
+      const logWindow = window.open('', '_blank');
+      const rows = log.length > 0 ? log.flatMap(entry => {
+        return Object.entries(entry.items).map(([name, { qty, price }]) => {
+          return `<tr><td>${entry.time}</td><td>${name}</td><td>${qty}</td><td>₩${price.toLocaleString()}</td><td>₩${(qty * price).toLocaleString()}</td></tr>`;
+        });
+      }).join('') : '<tr><td colspan="5">기록이 없습니다</td></tr>';
+
+      const salesHTML = [
+        '<!DOCTYPE html>',
+        '<html><head><title>매출/재고 내역</title><style>',
+        'body { font-family: sans-serif; padding: 2rem; }',
+        'table { border-collapse: collapse; width: 100%; }',
+        'th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }',
+        'button { margin-top: 1rem; padding: 0.5rem 1rem; font-size: 1rem; }',
+        '</style></head><body>',
+        '<h2>📋 매출/재고 내역</h2>',
+        '<table>',
+        '<thead><tr><th>시간</th><th>상품</th><th>수량</th><th>단가</th><th>합계</th></tr></thead>',
+        '<tbody>',
+        rows,
+        '</tbody>',
+        '</table>',
+        '<button onclick="window.print()">🖨 인쇄하기</button>',
+        '</body></html>'
+      ].join('\n');
+
+      logWindow.document.open();
+      logWindow.document.write(salesHTML);
+      logWindow.document.close();
+    }
+
+    window.onload = () => {
+      renderMenu();
+      renderReceipt();
+    }
+  </script>
+</head>
+<body>
+  <div class="menu" id="menu"></div>
+  <div class="receipt">
+    <div class="receipt-list" id="receipt"></div>
+    <div class="summary">
+      <p><strong>총 합계:</strong> ₩<span id="total">0</span></p>
+      <button onclick="confirmPurchase()">결제하기</button>
+      <div class="utility">
+        <button onclick="openSalesLog()">매출/재고 확인</button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
