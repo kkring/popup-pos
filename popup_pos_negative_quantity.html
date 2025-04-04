@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>전체 상품 포함 POS</title>
+  <style>
+    @font-face {
+    font-family: 'Pretendard-Regular';
+    src: url('https://fastly.jsdelivr.net/gh/Project-Noonnu/noonfonts_2107@1.1/Pretendard-Regular.woff') format('woff');
+    font-weight: 400,500,600,700,800;
+    font-style: normal,italic;
+}
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      background: #f4f4f4;
+      max-width: 600px;
+      margin: auto;
+    }
+    .product {
+      display: flex;
+    justify-content: space-between;
+    background: #fff;
+    padding: 10px;
+    margin-bottom: 8px;
+    width: 100%;
+    border-radius: 5px;
+    font-size: 1.8rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+    }
+    .product button {
+      padding: 5px 10px;
+    }
+    .total, .actions {
+      text-align: center;
+      margin-top: 20px;
+    }
+    button {
+      margin: 5px;
+    font-size: 1.8rem;
+    background-color: #000;
+    color: #fff;
+    border: 0;
+    border-radius: 32px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1 style="
+      text-align: center;
+  ">매니폴드 팝업 계산기</h1>
+
+  <div id="product-list" style="
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      width: 100%;
+      margin: auto;
+  ">
+    <div class="product"><span style="
+  ">티머그 (0)</span>
+      <div><button>−</button><button>+ ₩25,000</button></div>
+    </div>
+    <div class="product"><span>틴케이스 - 오리엔탈 (티백) (0)</span>
+      <div>
+      <button>−</button><button>+ ₩26,000</button></div></div>
+    <div class="product"><span>틴케이스 - 스윗 (티백) (0)</span><button>−</button><button>+ ₩26,000</button></div>
+    <div class="product"><span>틴케이스 - 쿨 (티백) (0)</span><button>−</button><button>+ ₩26,000</button></div>
+    <div class="product"><span>티머그 세트 - 오리엔탈 (티백) (0)</span><button>−</button><button>+ ₩50,000</button></div>
+    <div class="product"><span>티머그 세트 - 스윗 (티백) (0)</span><button>−</button><button>+ ₩50,000</button></div>
+    <div class="product"><span>티머그 세트 - 쿨 (티백) (0)</span><button>−</button><button>+ ₩50,000</button></div>
+    <div class="product"><span>버라이어티팩 (0)</span><button>−</button><button>+ ₩16,000</button></div>
+    <div class="product"><span>3종 선물세트 (티백) (0)</span><button>−</button><button>+ ₩79,000</button></div>
+    <div class="product"><span>쇼핑백 (0)</span><button>−</button><button>+ ₩2,000</button></div>
+    <div class="product"><span>개별 파우치 - 오리엔탈 (0)</span><button>−</button><button>+ ₩0</button></div>
+    <div class="product"><span>개별 파우치 - 스윗 (0)</span><button>−</button><button>+ ₩0</button></div>
+    <div class="product"><span>개별 파우치 - 쿨 (0)</span><button>−</button><button>+ ₩0</button></div>
+  </div>
+
+  <div class="total">
+    <strong>총합계:</strong> <span id="total">₩0</span>
+  </div>
+
+  <div class="actions">
+    <button onclick="confirmPurchase()">구매 완료</button>
+    <button onclick="viewLog()">기록 보기</button>
+    <button onclick="resetCounts()">초기화</button>
+  </div>
+
+  <script>
+    const products = [
+      { name: "티머그", price: 25000 },
+      { name: "틴케이스 - 오리엔탈 (티백)", price: 26000 },
+      { name: "틴케이스 - 스윗 (티백)", price: 26000 },
+      { name: "틴케이스 - 쿨 (티백)", price: 26000 },
+      { name: "티머그 세트 - 오리엔탈 (티백)", price: 50000 },
+      { name: "티머그 세트 - 스윗 (티백)", price: 50000 },
+      { name: "티머그 세트 - 쿨 (티백)", price: 50000 },
+      { name: "버라이어티팩", price: 16000 },
+      { name: "3종 선물세트 (티백)", price: 79000 },
+      { name: "쇼핑백", price: 2000 },
+      { name: "개별 파우치 - 오리엔탈", price: 0 },
+      { name: "개별 파우치 - 스윗", price: 0 },
+      { name: "개별 파우치 - 쿨", price: 0 }
+    ];
+
+    let cart = {};
+    let log = JSON.parse(localStorage.getItem('popup_sales_log') || '{}');
+
+    function updateDisplay() {
+      let total = 0;
+      const list = document.getElementById("product-list");
+      list.innerHTML = "";
+
+      products.forEach(product => {
+        const count = cart[product.name] || 0;
+
+        const line = document.createElement("div");
+        line.className = "product";
+
+        const label = document.createElement("span");
+        label.textContent = `${product.name} (${count})`;
+
+        const plus = document.createElement("button");
+        plus.textContent = `+ ₩${product.price.toLocaleString()}`;
+        plus.onclick = () => add(product.name, product.price);
+
+        const minus = document.createElement("button");
+        minus.textContent = `−`;
+        minus.onclick = () => subtract(product.name);
+
+        line.appendChild(label);
+        line.appendChild(minus);
+        line.appendChild(plus);
+        list.appendChild(line);
+
+        total += count * product.price;
+      });
+
+      document.getElementById("total").textContent = `₩${total.toLocaleString()}`;
+    }
+
+    function add(name, price) {
+      cart[name] = (cart[name] || 0) + 1;
+
+      function subtract(name) {
+        cart[name] = (cart[name] || 0) - 1;
+        updateDisplay();
+      }
+
+      updateDisplay();
+    }
+
+    function confirmPurchase() {
+      for (let name in cart) {
+        if (!log[name]) log[name] = 0;
+        log[name] += cart[name];
+      }
+      localStorage.setItem('popup_sales_log', JSON.stringify(log));
+      alert("구매가 기록되었습니다.");
+      cart = {};
+
+      function subtract(name) {
+        cart[name] = (cart[name] || 0) - 1;
+        updateDisplay();
+      }
+
+      updateDisplay();
+    }
+
+    function viewLog() {
+      let html = `
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>판매 기록</title>
+        <style>
+          body { font-family: sans-serif; padding: 2rem; }
+          table { border-collapse: collapse; width: 100%; }
+          th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+          th { background-color: #f2f2f2; }
+        </style>
+      </head>
+      <body>
+        <h1>판매 기록</h1>
+        <table>
+          <thead>
+            <tr><th>상품명</th><th>판매수량</th><th>총액</th></tr>
+          </thead>
+          <tbody>
+    `;
+
+      let total = 0;
+      for (let name in log) {
+        const count = log[name];
+        const product = products.find(p => p.name === name);
+        const amount = product ? product.price * count : 0;
+        total += amount;
+        html += `<tr><td>${name}</td><td>${count}</td><td>₩${amount.toLocaleString()}</td></tr>`;
+      }
+
+      html += `
+          </tbody>
+        </table>
+        <h3>총합계: ₩${total.toLocaleString()}</h3>
+      </body>
+      </html>
+    `;
+
+      const newWindow = window.open("", "_blank");
+      newWindow.document.write(html);
+      newWindow.document.close();
+    }
+
+    function resetCounts() {
+      cart = {};
+
+      function subtract(name) {
+        cart[name] = (cart[name] || 0) - 1;
+        updateDisplay();
+      }
+
+      updateDisplay();
+    }
+
+
+    function subtract(name) {
+      cart[name] = (cart[name] || 0) - 1;
+      updateDisplay();
+    }
+
+    updateDisplay();
+  </script>
+
+
+
+</body>
+
+</html>
