@@ -37,10 +37,11 @@ function renderMenu() {
   products.forEach((p) => {
     const item = document.createElement("div");
     item.className = "menu-item";
+    const sold = p.initialStock !== undefined ? p.initialStock - p.stock : "?";
     item.innerHTML = `
       ${p.name}<br>
       ₩${p.price.toLocaleString()}<br>
-      <small>재고: ${p.stock}</small>
+      <small>재고: ${p.stock} (판매: ${sold})</small>
     `;
 
     item.onclick = () => {
@@ -63,19 +64,14 @@ function renderReceipt() {
     item.className = "receipt-item";
 
     const infoWrap = document.createElement("div");
-    
 
     const nameEl = document.createElement("span");
-    
     nameEl.textContent = name;
-    item.className = "prd-name";
 
     const qtyControl = document.createElement("div");
     qtyControl.style.display = "flex";
     qtyControl.style.alignItems = "center";
     qtyControl.style.gap = "0.25rem";
-    qtyControl.style.margin ="10px 0 10px 0";
-
 
     const minusBtn = document.createElement("button");
     minusBtn.textContent = "−";
@@ -88,7 +84,6 @@ function renderReceipt() {
     qtyInput.type = "number";
     qtyInput.value = qty;
     qtyInput.style.width = "60px";
-    qtyInput.style.height= "43px";
     qtyInput.onchange = () => {
       const newQty = parseInt(qtyInput.value);
       if (!isNaN(newQty)) {
@@ -116,10 +111,9 @@ function renderReceipt() {
     infoWrap.appendChild(priceEl);
 
     const btnWrap = document.createElement("div");
-    btnWrap.className = "btn-del";
+    btnWrap.className = "btn-wrap";
 
     const delBtn = document.createElement("button");
-    item.className = "btn-wrap";
     delBtn.textContent = "🗑";
     delBtn.onclick = () => {
       delete cart[name];
